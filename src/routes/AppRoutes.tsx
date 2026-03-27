@@ -1,21 +1,26 @@
 import { Route, Routes } from "react-router-dom";
+import AdminProtectedRoute from "../components/admin/AdminProtectedRoute";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 import MainLayout from "../layouts/MainLayout";
-import BookingsPage from "../pages/Booking";
+import BookingsPage from "../pages/BookingsPage";
+import CreateMoviePage from "../pages/admin/CreateMoviePage";
+import CreateShowPage from "../pages/admin/CreateShowPage";
+import CreateTheatrePage from "../pages/admin/CreateTheatrePage";
 import HomePage from "../pages/HomePage";
-import MovieDetailsPage from "../pages/MovieDetails";
+import MovieDetailsPage from "../pages/MovieDetailsPage";
 import MoviesPage from "../pages/MoviesPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import PaymentsPage from "../pages/PaymentsPage";
 import ShowsPage from "../pages/ShowsPage";
 import SignInPage from "../pages/SignInPage";
 import SignUpPage from "../pages/SignUpPage";
-import TheatresPage from "../pages/TheatrePage";
+import TheatresPage from "../pages/TheatresPage";
 
 const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<MainLayout />}>
+        {/* Public Routes */}
         <Route index element={<HomePage />} />
         <Route path="signin" element={<SignInPage />} />
         <Route path="signup" element={<SignUpPage />} />
@@ -23,8 +28,8 @@ const AppRoutes = () => {
         <Route path="movies/:id" element={<MovieDetailsPage />} />
         <Route path="theatres" element={<TheatresPage />} />
         <Route path="shows" element={<ShowsPage />} />
-        
-        {/* Protected Routes */}
+
+        {/* Protected Customer Routes */}
         <Route
           path="bookings"
           element={
@@ -41,7 +46,33 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        
+
+        {/* Admin/Client Only Routes */}
+        <Route
+          path="admin/movies/create"
+          element={
+            <AdminProtectedRoute allowedRoles={["ADMIN", "CLIENT"]}>
+              <CreateMoviePage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/theatres/create"
+          element={
+            <AdminProtectedRoute allowedRoles={["ADMIN", "CLIENT"]}>
+              <CreateTheatrePage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/shows/create"
+          element={
+            <AdminProtectedRoute allowedRoles={["ADMIN", "CLIENT"]}>
+              <CreateShowPage />
+            </AdminProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

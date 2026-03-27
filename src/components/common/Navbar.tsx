@@ -4,6 +4,8 @@ import { useAuth } from "../../hooks/useAuth";
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useAuth();
 
+  const isAdminOrClient = user?.userRole === "ADMIN" || user?.userRole === "CLIENT";
+
   return (
     <nav className="border-b border-slate-800 bg-slate-950">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
@@ -20,6 +22,21 @@ const Navbar = () => {
             <>
               <Link to="/bookings" className="hover:text-white">Bookings</Link>
               <Link to="/payments" className="hover:text-white">Payments</Link>
+              
+              {/* Admin Menu */}
+              {isAdminOrClient && (
+                <div className="group relative">
+                  <button className="text-rose-400 hover:text-rose-300">
+                    Admin ▼
+                  </button>
+                  <div className="absolute right-0 top-full mt-2 hidden w-48 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl group-hover:block">
+                    <Link to="/admin/movies/create" className="block px-3 py-2 hover:bg-slate-800">Add Movie</Link>
+                    <Link to="/admin/theatres/create" className="block px-3 py-2 hover:bg-slate-800">Add Theatre</Link>
+                    <Link to="/admin/shows/create" className="block px-3 py-2 hover:bg-slate-800">Add Show</Link>
+                  </div>
+                </div>
+              )}
+
               <span className="text-slate-400">{user?.name}</span>
               <button
                 onClick={logout}
