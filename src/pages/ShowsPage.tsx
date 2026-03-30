@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getShows } from "../api/showApi";
 import Loader from "../components/common/Loader";
-import Button from "../components/common/Button";
+import { useAuth } from "../hooks/useAuth";
 import { Show } from "../types/show";
 
 const ShowsPage = () => {
   const [shows, setShows] = useState<Show[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const fetchShows = async () => {
@@ -36,18 +37,36 @@ const ShowsPage = () => {
             className="rounded-xl border border-slate-800 bg-slate-900 p-5"
           >
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-lg font-semibold text-white">{show.timing}</span>
-              <span className="text-rose-600 font-bold">₹{show.price}</span>
+              <span className="text-lg font-semibold text-white">
+                {new Date(show.timing).toLocaleDateString()}
+              </span>
+              <span className="rounded bg-rose-600/20 px-2 py-1 text-sm font-bold text-rose-600">
+                ₹{show.price}
+              </span>
             </div>
             
-            <div className="mb-4 space-y-1 text-sm text-slate-400">
-              <p>Seats Available: {show.noOfSeats}</p>
-              {show.format && <p>Format: {show.format}</p>}
-            </div>
+            <p className="mb-1 text-sm text-slate-400">
+              Time: {new Date(show.timing).toLocaleTimeString()}
+            </p>
+            <p className="mb-4 text-sm text-slate-400">
+              Seats Available: {show.noOfSeats}
+            </p>
 
-            <Link to="/bookings">
-              <Button className="w-full">Book Now</Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                to={`/shows/${show.id}/book`}
+                className="block w-full rounded-lg bg-rose-600 py-2 text-center font-medium text-white hover:bg-rose-700"
+              >
+                Book Now
+              </Link>
+            ) : (
+              <Link
+                to="/signin"
+                className="block w-full rounded-lg bg-slate-700 py-2 text-center font-medium text-slate-300 hover:bg-slate-600"
+              >
+                Sign in to Book
+              </Link>
+            )}
           </div>
         ))}
       </div>

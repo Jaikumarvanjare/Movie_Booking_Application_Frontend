@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { cancelBooking, getBookings } from "../api/bookingApi";
 import Button from "../components/common/Button";
 import Loader from "../components/common/Loader";
 import { Booking } from "../types/booking";
 
 const BookingsPage = () => {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +37,19 @@ const BookingsPage = () => {
     }
   };
 
+  const handlePayNow = (booking: Booking) => {
+    navigate("/payment", {
+      state: {
+        bookingId: booking.id,
+        amount: booking.totalCost,
+        showDetails: {
+          timing: booking.timing,
+          price: booking.totalCost / booking.noOfSeats
+        }
+      }
+    });
+  };
+
   if (loading) return <Loader />;
 
   return (
@@ -51,23 +66,40 @@ const BookingsPage = () => {
               className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900 p-5 md:flex-row md:items-center"
             >
               <div className="mb-4 md:mb-0">
-                <p className="font-semibold text-white">Show Time: {booking.timing}</p>
+                <p className="font-semibold text-white">Show Time: {new Date(booking.timing).toLocaleString()}</p>
                 <p className="text-sm text-slate-400">
                   Seats: {booking.noOfSeats} | Total: ₹{booking.totalCost}
                 </p>
                 <p className="text-sm text-slate-500 mt-1">
-                  Status: <span className={`${booking.status === 'CANCELLED' ? 'text-red-400' : 'text-green-400'}`}>{booking.status}</span>
+                  Status: 
+                  <span className={`ml-1 ${booking.status === 'CANCELLED' ? 'text-red-400' : booking.status === 'COMPLETED' ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {booking.status}
+                  </span>
                 </p>
               </div>
               
-              {booking.status !== 'CANCELLED' && (
-                <Button 
-                  variant="danger" 
-                  onClick={() => handleCancel(booking.id)}
-                >
-                  Cancel
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {booking.status === 'PENDING' || booking.status === 'PROCESSING' ? (
+                  <>
+                    <Button 
+                      variant="primary" 
+                      onClick={() => handlePayNow(booking)}
+                    >
+                      Pay Now
+                    </Button>
+                    <Button 
+                      variant="danger" 
+                      onClick={() => handleCancel(booking.id)}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : booking.status === 'CANCELLED' ? (
+                  <span className="text-sm text-slate-500">Cancelled</span>
+                ) : (
+                  <span className="text-sm text-green-400">Paid</span>
+                )}
+              </div>
             </div>
           ))}
         </div>
