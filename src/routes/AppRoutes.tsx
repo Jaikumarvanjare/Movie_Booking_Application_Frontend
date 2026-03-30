@@ -2,11 +2,13 @@ import { Route, Routes } from "react-router-dom";
 import AdminProtectedRoute from "../components/admin/AdminProtectedRoute";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 import MainLayout from "../layouts/MainLayout";
+import BookShowPage from "../pages/booking/BookShowPage";
 import BookingsPage from "../pages/BookingsPage";
 import CreateMoviePage from "../pages/admin/CreateMoviePage";
 import CreateShowPage from "../pages/admin/CreateShowPage";
 import CreateTheatrePage from "../pages/admin/CreateTheatrePage";
 import HomePage from "../pages/HomePage";
+import MakePaymentPage from "../pages/booking/MakePaymentPage";
 import MovieDetailsPage from "../pages/MovieDetailsPage";
 import MoviesPage from "../pages/MoviesPage";
 import NotFoundPage from "../pages/NotFoundPage";
@@ -30,6 +32,22 @@ const AppRoutes = () => {
         <Route path="shows" element={<ShowsPage />} />
 
         {/* Protected Customer Routes */}
+        <Route
+          path="shows/:showId/book"
+          element={
+            <ProtectedRoute>
+              <BookShowPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="payment"
+          element={
+            <ProtectedRoute>
+              <MakePaymentPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="bookings"
           element={
