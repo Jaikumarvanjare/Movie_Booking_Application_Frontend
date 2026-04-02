@@ -1,4 +1,4 @@
-import { UserRole } from "./user";
+import type { UserRole, UserStatus } from "./user";
 
 export interface SignUpPayload {
   name: string;
@@ -17,13 +17,19 @@ export interface ResetPasswordPayload {
   newPassword: string;
 }
 
+export interface AuthUserData {
+  id: string;
+  name: string;
+  email: string;
+  userRole: UserRole;
+  userStatus?: UserStatus;
+}
+
 export interface AuthData {
   accessToken?: string;
   token?: string;
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-    userRole: UserRole;
-  };
+  email?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  user?: AuthUserData;
 }

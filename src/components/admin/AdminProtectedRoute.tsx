@@ -6,9 +6,9 @@ interface AdminProtectedRouteProps {
   allowedRoles?: ("ADMIN" | "CLIENT")[];
 }
 
-const AdminProtectedRoute = ({ 
-  children, 
-  allowedRoles = ["ADMIN", "CLIENT"] 
+const AdminProtectedRoute = ({
+  children,
+  allowedRoles = ["ADMIN", "CLIENT"]
 }: AdminProtectedRouteProps) => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -24,7 +24,18 @@ const AdminProtectedRoute = ({
     return <Navigate to="/signin" replace />;
   }
 
-  if (!allowedRoles.includes(user?.userRole as any)) {
+  if (user?.userStatus && user.userStatus !== "APPROVED") {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+        <h1 className="mb-4 text-3xl font-bold text-amber-500">Account Pending</h1>
+        <p className="text-slate-400">
+          Your account is not approved for admin actions yet.
+        </p>
+      </div>
+    );
+  }
+
+  if (!allowedRoles.includes(user?.userRole as "ADMIN" | "CLIENT")) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <h1 className="mb-4 text-3xl font-bold text-red-600">Access Denied</h1>

@@ -1,180 +1,187 @@
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import apiClient from "../../api/axios";
+import { createMovie } from "../../api/movieApi";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
-import { Movie } from "../../types/movie";
+import { useToast } from "../../context/ToastContext";
 
 const CreateMoviePage = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { showToast } = useToast();
 
-  const [formData, setFormData] = useState<Partial<Movie>>({
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
-    casts: [],
+    castsInput: "",
     trailerUrl: "",
     language: "English",
     releaseDate: "",
     director: "",
     releaseStatus: "UPCOMING",
     poster: "",
-    theatreIds: []
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [castInput, setCastInput] = useState("");
-
-  const handleChange = (key: keyof Movie, value: any) => {
+  const handleChange = (key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const addCast = () => {
-    if (castInput.trim()) {
-      handleChange("casts", [...(formData.casts || []), castInput.trim()]);
-      setCastInput("");
-    }
-  };
-
-  const removeCast = (index: number) => {
-    const newCasts = formData.casts?.filter((_, i) => i !== index) || [];
-    handleChange("casts", newCasts);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
     setLoading(true);
 
     try {
-      const response = await apiClient.post("/movies", formData);
-      setSuccess("Movie created successfully!");
-      setTimeout(() => navigate("/movies"), 1500);
+      const casts = formData.castsInput
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean);
+
+      await createMovie({
+        name: formData.name,
+        description: formData.description,
+        casts,
+        trailerUrl: formData.trailerUrl,
+        language: formData.language,
+        releaseDate: new Date(formData.releaseDate).toISOString(),
+        director: formData.director,
+        releaseStatus: formData.releaseStatus,
+        poster: formData.poster,
+      });
+
+      showToast("Movie created successfully!", "success");
+      navigate("/movies");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to create movie");
+      showToast("Failed to create movie", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="mx-auto max-w-2xl rounded-xl border border-slate-800 bg-slate-900 p-6">
-      <h1 className="mb-6 text-3xl font-bold text-white">Create New Movie</h1>
+    <div className="mx-auto max-w-2xl animate-fade-in-up">
+      <div className="mb-8">
+        <h1 className="mb-2 text-3xl font-bold text-white">Add New Movie</h1>
+        <p className="text-slate-400">Fill in the details to add a new movie</p>
+      </div>
 
-      {error && (
-        <div className="mb-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">{error}</div>
-      )}
-      {success && (
-        <div className="mb-4 rounded-lg bg-green-500/10 p-3 text-sm text-green-400">{success}</div>
-      )}
+      <div className="glass rounded-2xl p-8 shadow-2xl">
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Movie Name"
-          value={formData.name}
-          onChange={(e) => handleChange("name", e.target.value)}
-          required
-        />
-        
-        <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium text-slate-200">Description</label>
-          <textarea
-            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-white outline-none focus:border-rose-600"
-            rows={3}
-            value={formData.description}
-            onChange={(e) => handleChange("description", e.target.value)}
+        <form onSubmit={handleSubmit} className="space-y-1">
+          <Input
+            label="Movie Name"
+            type="text"
+            placeholder="e.g., Avengers: Endgame"
+            value={formData.name}
+            onChange={(e) => handleChange("name", e.target.value)}
             required
           />
-        </div>
 
-        <Input
-          label="Director"
-          value={formData.director}
-          onChange={(e) => handleChange("director", e.target.value)}
-          required
-        />
-
-        <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium text-slate-200">Casts</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-white outline-none focus:border-rose-600"
-              value={castInput}
-              onChange={(e) => setCastInput(e.target.value)}
-              placeholder="Add cast member"
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium text-slate-300">Description</label>
+            <textarea
+              placeholder="Movie description..."
+              value={formData.description}
+              onChange={(e) => handleChange("description", e.target.value)}
+              required
+              rows={3}
+              className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-white placeholder-slate-500 outline-none transition-all focus:border-brand focus:shadow-[0_0_0_3px_rgba(225,29,72,0.1)]"
             />
-            <Button type="button" variant="secondary" onClick={addCast}>Add</Button>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {formData.casts?.map((cast, idx) => (
-              <span key={idx} className="flex items-center gap-1 rounded bg-slate-800 px-2 py-1 text-sm">
-                {cast}
-                <button type="button" onClick={() => removeCast(idx)} className="text-red-400">×</button>
-              </span>
-            ))}
-          </div>
-        </div>
 
-        <Input
-          label="Trailer URL"
-          type="url"
-          value={formData.trailerUrl}
-          onChange={(e) => handleChange("trailerUrl", e.target.value)}
-        />
+          <Input
+            label="Cast (comma-separated)"
+            type="text"
+            placeholder="Robert Downey Jr, Chris Evans, Scarlett Johansson"
+            value={formData.castsInput}
+            onChange={(e) => handleChange("castsInput", e.target.value)}
+            required
+          />
 
-        <Input
-          label="Poster URL"
-          type="url"
-          value={formData.poster}
-          onChange={(e) => handleChange("poster", e.target.value)}
-          required
-        />
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-200">Language</label>
-            <select
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-white"
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Director"
+              type="text"
+              placeholder="e.g., Russo Brothers"
+              value={formData.director}
+              onChange={(e) => handleChange("director", e.target.value)}
+              required
+            />
+            <Input
+              label="Language"
+              type="text"
+              placeholder="English"
               value={formData.language}
               onChange={(e) => handleChange("language", e.target.value)}
-            >
-              <option>English</option>
-              <option>Hindi</option>
-              <option>Spanish</option>
-              <option>French</option>
-              <option>Other</option>
-            </select>
+              required
+            />
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-200">Release Status</label>
-            <select
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-white"
-              value={formData.releaseStatus}
-              onChange={(e) => handleChange("releaseStatus", e.target.value)}
-            >
-              <option>UPCOMING</option>
-              <option>RELEASED</option>
-              <option>BLOCKED</option>
-            </select>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Release Date"
+              type="date"
+              value={formData.releaseDate}
+              onChange={(e) => handleChange("releaseDate", e.target.value)}
+              required
+            />
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-medium text-slate-300">Release Status</label>
+              <select
+                className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-white outline-none transition-all focus:border-brand"
+                value={formData.releaseStatus}
+                onChange={(e) => handleChange("releaseStatus", e.target.value)}
+              >
+                <option value="UPCOMING">Upcoming</option>
+                <option value="RELEASED">Released</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <Input
-          label="Release Date"
-          type="date"
-          value={formData.releaseDate}
-          onChange={(e) => handleChange("releaseDate", e.target.value)}
-          required
-        />
+          <Input
+            label="Trailer URL"
+            type="url"
+            placeholder="https://youtube.com/watch?v=..."
+            value={formData.trailerUrl}
+            onChange={(e) => handleChange("trailerUrl", e.target.value)}
+            required
+          />
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Creating..." : "Create Movie"}
-        </Button>
-      </form>
+          <Input
+            label="Poster URL"
+            type="url"
+            placeholder="https://image-url.com/poster.jpg"
+            value={formData.poster}
+            onChange={(e) => handleChange("poster", e.target.value)}
+            required
+          />
+
+          {formData.poster && (
+            <div className="mb-4">
+              <p className="mb-2 text-sm text-slate-400">Poster Preview</p>
+              <img
+                src={formData.poster}
+                alt="Poster preview"
+                className="h-40 w-28 rounded-lg object-cover border border-slate-700"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading ? "Creating Movie..." : "Create Movie"}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };

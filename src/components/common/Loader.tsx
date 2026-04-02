@@ -1,15 +1,23 @@
-const Loader = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
+const Loader = ({ size = "md", text }: { size?: "sm" | "md" | "lg"; text?: string }) => {
   const sizes = {
-    sm: "h-6 w-6 border-2",
-    md: "h-10 w-10 border-4",
-    lg: "h-16 w-16 border-4"
+    sm: "h-5 w-5 border-2",
+    md: "h-10 w-10 border-[3px]",
+    lg: "h-16 w-16 border-4",
   };
 
   return (
-    <div className="flex items-center justify-center">
-      <div
-        className={`animate-spin rounded-full border-slate-600 border-t-rose-600 ${sizes[size]}`}
-      ></div>
+    <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
+      <div className="relative">
+        <div
+          className={`animate-spin rounded-full border-slate-700 border-t-brand ${sizes[size]}`}
+        />
+        <div
+          className={`absolute inset-0 animate-ping rounded-full border-brand/20 ${sizes[size]} opacity-20`}
+        />
+      </div>
+      {text && (
+        <p className="animate-pulse text-sm text-slate-400">{text}</p>
+      )}
     </div>
   );
 };
