@@ -1,6 +1,6 @@
 import apiClient from "./axios";
-import { ApiResponse } from "../types/api";
-import {
+import type { ApiResponse } from "../types/api";
+import type {
   AuthData,
   ResetPasswordPayload,
   SignInPayload,
