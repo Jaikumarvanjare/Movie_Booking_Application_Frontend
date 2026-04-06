@@ -84,7 +84,9 @@ const BookShowPage = () => {
       showToast("Booking created! Redirecting to payment...", "success");
       navigate(appRoutes.bookingPayment(bookingId));
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to create booking");
+      const errorData = err?.response?.data;
+      const errMsg = errorData?.err || errorData?.message || err?.message || "Failed to create booking";
+      setError(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
       showToast("Booking failed", "error");
     } finally {
       setSubmitting(false);
