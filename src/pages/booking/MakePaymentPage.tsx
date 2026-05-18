@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { getBookingById } from "../../api/bookingApi";
 import Button from "../../components/common/Button";
@@ -23,6 +24,30 @@ const RazorpayLogo = () => (
 
 // ── Step indicator ────────────────────────────────────────────────────────────
 const steps = ["Select Seats", "Review", "Payment"];
+
+const getBookingLoadErrorMessage = (error: unknown) => {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const data = error.response?.data;
+    const backendMessage = data?.message || data?.err || data?.error || error.message;
+
+    if (status === 401) {
+      return "Your session has expired. Please sign in again before continuing payment.";
+    }
+
+    if (status === 403) {
+      return typeof backendMessage === "string"
+        ? backendMessage
+        : "You do not have permission to pay for this booking.";
+    }
+
+    return typeof backendMessage === "string"
+      ? backendMessage
+      : "Failed to load booking for payment.";
+  }
+
+  return error instanceof Error ? error.message : "Failed to load booking for payment.";
+};
 
 const StepBar = ({ current }: { current: number }) => (
   <div className="mb-8 flex items-center justify-center gap-2">
@@ -96,7 +121,8 @@ const MakePaymentPage = () => {
 
   // ── Razorpay hook callbacks (stable refs) ──────────────────────────────────
   const handleSuccess = useCallback(
-    (razorpayPaymentId: string) => {
+    (razorpayPaymentId: string, updatedBooking: Booking) => {
+      setBooking(updatedBooking);
       setFinalPaymentId(razorpayPaymentId);
       setSuccess(true);
       showToast("Payment successful! Booking confirmed. 🎉", "success");
@@ -125,9 +151,7 @@ const MakePaymentPage = () => {
         const response = await getBookingById(bookingId);
         setBooking(response.data);
       } catch (err: unknown) {
-        const msg =
-          err instanceof Error ? err.message : "Failed to load booking for payment.";
-        setPageError(msg);
+        setPageError(getBookingLoadErrorMessage(err));
       } finally {
         setPageLoading(false);
       }

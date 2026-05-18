@@ -3,6 +3,8 @@ export const API_BASE_URL =
 
 export const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT || 5000);
 
+export const API_KEY_SECRET = import.meta.env.VITE_API_KEY_SECRET?.trim() || "";
+
 export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
 
 export const STORAGE_KEYS = {
