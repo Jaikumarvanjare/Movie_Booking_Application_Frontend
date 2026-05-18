@@ -1,5 +1,6 @@
 import { createContext, useEffect, useState } from "react";
-import { signIn } from "../api/authApi";
+import { logoutUser, signIn } from "../api/authApi";
+import { getCurrentProfile } from "../api/userApi";
 import type { AuthData, SignInPayload } from "../types/auth";
 import type { User, UserRole, UserStatus } from "../types/user";
 import { storage } from "../utils/storage";
@@ -93,12 +94,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     storage.setToken(resolvedToken);
-    storage.setUser(resolvedUser);
+    const profileUser = await getCurrentProfile()
+      .then((profile) => profile.data.user)
+      .catch(() => resolvedUser);
+
+    storage.setUser(profileUser);
     setToken(resolvedToken);
-    setUser(resolvedUser);
+    setUser(profileUser);
   };
 
   const logout = () => {
+    logoutUser().catch(() => {
+      // Local sign-out should still complete if the stateless backend acknowledgement fails.
+    });
     storage.clearAuth();
     setUser(null);
     setToken(null);

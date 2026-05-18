@@ -1,3 +1,5 @@
+import type { Booking } from "./booking";
+
 export interface Payment {
   id: string;
   amount: number;
@@ -24,12 +26,14 @@ export interface RazorpayOrderResponse {
 }
 
 export interface RazorpayVerifyPayload {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
   bookingId: string;
   amount: number;
 }
+
+export type RazorpayVerifyResponse = Booking;
 
 export interface CreatePaymentPayload {
   bookingId: string;

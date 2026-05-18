@@ -18,9 +18,13 @@ export const getShowById = async (id: string) => {
     ? response.data.find((item) => item.id === id) ?? null
     : null;
 
+  if (!show) {
+    throw new Error("Show not found");
+  }
+
   return {
     ...response,
-    data: show as Show
+    data: show
   };
 };
 

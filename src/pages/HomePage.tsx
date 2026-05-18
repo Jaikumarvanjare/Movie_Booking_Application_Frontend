@@ -9,6 +9,7 @@ import MovieCard from "../components/movies/MovieCard";
 import type { Movie } from "../types/movie";
 import type { Show } from "../types/show";
 import type { Theatre } from "../types/theatre";
+import { readSettledApiArray } from "../utils/apiResults";
 import { appRoutes } from "../utils/routes";
 
 const HomePage = () => {
@@ -20,14 +21,14 @@ const HomePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [moviesRes, showsRes, theatresRes] = await Promise.all([
+        const [moviesRes, showsRes, theatresRes] = await Promise.allSettled([
           getMovies(),
           getShows(),
           getTheatres()
         ]);
-        setMovies(Array.isArray(moviesRes.data) ? moviesRes.data : []);
-        setShows(Array.isArray(showsRes.data) ? showsRes.data : []);
-        setTheatres(Array.isArray(theatresRes.data) ? theatresRes.data : []);
+        setMovies(readSettledApiArray(moviesRes));
+        setShows(readSettledApiArray(showsRes));
+        setTheatres(readSettledApiArray(theatresRes));
       } catch {
         console.error("Failed to fetch homepage data");
       } finally {

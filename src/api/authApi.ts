@@ -2,6 +2,7 @@ import apiClient from "./axios";
 import type { ApiResponse } from "../types/api";
 import type {
   AuthData,
+  ChangePasswordPayload,
   ResetPasswordPayload,
   SignInPayload,
   SignUpPayload
@@ -27,6 +28,21 @@ export const resetPassword = async (payload: ResetPasswordPayload) => {
   const response = await apiClient.patch<ApiResponse<null>>(
     "/auth/reset",
     payload
+  );
+  return response.data;
+};
+
+export const changePassword = async (payload: ChangePasswordPayload) => {
+  const response = await apiClient.post<ApiResponse<Record<string, never>>>(
+    "/auth/change-password",
+    payload
+  );
+  return response.data;
+};
+
+export const logoutUser = async () => {
+  const response = await apiClient.post<ApiResponse<Record<string, never>>>(
+    "/auth/logout"
   );
   return response.data;
 };

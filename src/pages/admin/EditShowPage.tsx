@@ -10,6 +10,7 @@ import { useToast } from "../../context/ToastContext";
 import type { Movie } from "../../types/movie";
 import type { Show } from "../../types/show";
 import type { Theatre } from "../../types/theatre";
+import { hasNonEmptyListRejection, readSettledApiArray } from "../../utils/apiResults";
 import { appRoutes } from "../../utils/routes";
 
 const EditShowPage = () => {
@@ -37,8 +38,8 @@ const EditShowPage = () => {
     const loadData = async () => {
       if (!id) return;
       try {
-        const [showRes, moviesRes, theatresRes] = await Promise.all([
-          getShowById(id),
+        const showRes = await getShowById(id);
+        const [moviesRes, theatresRes] = await Promise.allSettled([
           getMovies(),
           getTheatres()
         ]);
@@ -53,8 +54,11 @@ const EditShowPage = () => {
           price: String(show.price),
           format: show.format || "2D"
         });
-        setMovies(Array.isArray(moviesRes.data) ? moviesRes.data : []);
-        setTheatres(Array.isArray(theatresRes.data) ? theatresRes.data : []);
+        setMovies(readSettledApiArray(moviesRes));
+        setTheatres(readSettledApiArray(theatresRes));
+        if (hasNonEmptyListRejection(moviesRes, theatresRes)) {
+          setError("Show loaded, but some reference data could not be loaded");
+        }
       } catch (err: any) {
         setError(err?.response?.data?.message || "Failed to load show");
       } finally {

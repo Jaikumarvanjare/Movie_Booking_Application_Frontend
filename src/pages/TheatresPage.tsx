@@ -6,6 +6,7 @@ import SearchBar from "../components/common/SearchBar";
 import TheatreCard from "../components/theatres/TheatreCard";
 import type { Movie } from "../types/movie";
 import type { Theatre, TheatreSearchParams } from "../types/theatre";
+import { hasNonEmptyListRejection, readSettledApiArray } from "../utils/apiResults";
 
 const TheatresPage = () => {
   const [theatres, setTheatres] = useState<Theatre[]>([]);
@@ -20,9 +21,12 @@ const TheatresPage = () => {
       try {
         const params: TheatreSearchParams = {};
         if (cityFilter) params.city = cityFilter;
-        const [theatresRes, moviesRes] = await Promise.all([getTheatres(params), getMovies()]);
-        setTheatres(Array.isArray(theatresRes.data) ? theatresRes.data : []);
-        setMovies(Array.isArray(moviesRes.data) ? moviesRes.data : []);
+        const [theatresRes, moviesRes] = await Promise.allSettled([getTheatres(params), getMovies()]);
+        setTheatres(readSettledApiArray(theatresRes));
+        setMovies(readSettledApiArray(moviesRes));
+        if (hasNonEmptyListRejection(theatresRes, moviesRes)) {
+          setError("Some theatre data could not be loaded");
+        }
       } catch {
         setError("Failed to fetch theatres");
       } finally {

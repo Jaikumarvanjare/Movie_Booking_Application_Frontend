@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { createRazorpayOrder, createPayment, verifyRazorpayPayment } from "../api/paymentApi";
+import { createRazorpayOrder, verifyRazorpayPayment } from "../api/paymentApi";
 import { RAZORPAY_KEY_ID } from "../utils/constants";
 import type { Booking } from "../types/booking";
 
@@ -14,8 +14,7 @@ interface UseRazorpayReturn {
  * Encapsulates the full Razorpay 3-step checkout lifecycle:
  *   1. POST /payments/razorpay/order  → get Razorpay order
  *   2. Open Razorpay Checkout modal   → user pays
- *   3. POST /payments/razorpay/verify → verify signature
- *   4. POST /payments                 → record payment in DB
+ *   3. POST /payments/razorpay/verify → verify signature and finalize booking
  */
 export const useRazorpay = (
   onSuccess: (razorpayPaymentId: string) => void,
@@ -69,19 +68,11 @@ export const useRazorpay = (
               try {
                 // ── Step 3: Verify signature ────────────────────────────
                 await verifyRazorpayPayment({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
                   bookingId: booking.id,
                   amount: booking.totalCost
-                });
-
-                // ── Step 4: Record payment in DB ────────────────────────
-                await createPayment({
-                  bookingId: booking.id,
-                  amount: booking.totalCost,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpayOrderId: response.razorpay_order_id
                 });
 
                 setPaymentId(response.razorpay_payment_id);

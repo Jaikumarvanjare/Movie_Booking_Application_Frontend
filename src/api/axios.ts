@@ -1,9 +1,10 @@
 import axios from "axios";
-import { API_BASE_URL } from "../utils/constants";
+import { API_BASE_URL, API_TIMEOUT } from "../utils/constants";
 import { storage } from "../utils/storage";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: API_TIMEOUT,
   headers: {
     "Content-Type": "application/json"
   }

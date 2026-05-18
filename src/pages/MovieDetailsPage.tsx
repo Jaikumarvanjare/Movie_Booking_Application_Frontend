@@ -11,6 +11,7 @@ import { appRoutes } from "../utils/routes";
 import type { Movie } from "../types/movie";
 import type { Show } from "../types/show";
 import type { Theatre } from "../types/theatre";
+import { hasNonEmptyListRejection, readSettledApiArray } from "../utils/apiResults";
 
 const MovieDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,14 +25,17 @@ const MovieDetailsPage = () => {
     const fetchData = async () => {
       if (!id) return;
       try {
-        const [movieRes, showsRes, theatresRes] = await Promise.all([
-          getMovieById(id),
+        const movieRes = await getMovieById(id);
+        const [showsRes, theatresRes] = await Promise.allSettled([
           getShows({ movieId: id }),
           getTheatres()
         ]);
         setMovie(movieRes.data);
-        setShows(Array.isArray(showsRes.data) ? showsRes.data : []);
-        setTheatres(Array.isArray(theatresRes.data) ? theatresRes.data : []);
+        setShows(readSettledApiArray(showsRes));
+        setTheatres(readSettledApiArray(theatresRes));
+        if (hasNonEmptyListRejection(showsRes, theatresRes)) {
+          console.error("Failed to load all movie detail lists");
+        }
       } catch {
         setError("Failed to load movie details");
       } finally {

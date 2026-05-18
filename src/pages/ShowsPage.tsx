@@ -8,6 +8,7 @@ import ShowCard from "../components/shows/ShowCard";
 import type { Movie } from "../types/movie";
 import type { Show } from "../types/show";
 import type { Theatre } from "../types/theatre";
+import { hasNonEmptyListRejection, readSettledApiArray } from "../utils/apiResults";
 
 const ShowsPage = () => {
   const [shows, setShows] = useState<Show[]>([]);
@@ -22,14 +23,17 @@ const ShowsPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [showsRes, moviesRes, theatresRes] = await Promise.all([
+        const [showsRes, moviesRes, theatresRes] = await Promise.allSettled([
           getShows(),
           getMovies(),
           getTheatres()
         ]);
-        setShows(Array.isArray(showsRes.data) ? showsRes.data : []);
-        setMovies(Array.isArray(moviesRes.data) ? moviesRes.data : []);
-        setTheatres(Array.isArray(theatresRes.data) ? theatresRes.data : []);
+        setShows(readSettledApiArray(showsRes));
+        setMovies(readSettledApiArray(moviesRes));
+        setTheatres(readSettledApiArray(theatresRes));
+        if (hasNonEmptyListRejection(showsRes, moviesRes, theatresRes)) {
+          setError("Some show data could not be loaded");
+        }
       } catch {
         setError("Failed to fetch shows");
       } finally {

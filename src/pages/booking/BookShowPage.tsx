@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { createBooking } from "../../api/bookingApi";
 import { getShowById } from "../../api/showApi";
 import Button from "../../components/common/Button";
-import Input from "../../components/common/Input";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import type { Show } from "../../types/show";
@@ -11,6 +10,48 @@ import { parseSeatSelection, serializeSeatSelection } from "../../utils/booking"
 import { appRoutes } from "../../utils/routes";
 
 const STEPS = ["Select Seats", "Review", "Payment"];
+const SEATS_PER_ROW = 10;
+const SEAT_GROUPS = [
+  [1, 2, 3, 4, 5],
+  [6, 7, 8, 9, 10]
+];
+
+const getRowLabel = (rowIndex: number) => {
+  let value = rowIndex + 1;
+  let label = "";
+
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26);
+  }
+
+  return label;
+};
+
+const parseUnavailableSeats = (seatConfiguration?: string) => {
+  if (!seatConfiguration) return new Set<string>();
+
+  try {
+    const parsed = JSON.parse(seatConfiguration);
+    const values = Array.isArray(parsed)
+      ? parsed
+      : parsed.reservedSeats || parsed.bookedSeats || parsed.unavailableSeats || [];
+
+    if (Array.isArray(values)) {
+      return new Set(values.map(String).map((seat) => seat.toUpperCase()));
+    }
+  } catch {
+    return new Set(
+      seatConfiguration
+        .split(",")
+        .map((seat) => seat.trim().toUpperCase())
+        .filter(Boolean)
+    );
+  }
+
+  return new Set<string>();
+};
 
 const BookShowPage = () => {
   const { showId } = useParams<{ showId: string }>();
@@ -22,10 +63,7 @@ const BookShowPage = () => {
   const [error, setError] = useState("");
   const [step, setStep] = useState(0);
 
-  const [formData, setFormData] = useState({
-    noOfSeats: 1,
-    seatNumbers: ""
-  });
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchShow = async () => {
@@ -61,18 +99,14 @@ const BookShowPage = () => {
         theatreId: show.theatreId,
         movieId: show.movieId,
         timing: show.timing,
-        noOfSeats: formData.noOfSeats
+        noOfSeats: selectedSeats.length
       };
 
-      if (formData.seatNumbers.trim()) {
-        const seats = parseSeatSelection(formData.seatNumbers);
-
-        if (seats.length !== formData.noOfSeats) {
-          throw new Error("Selected seat count must match the number of seats.");
-        }
-
-        payload.seat = serializeSeatSelection(seats);
+      if (!selectedSeats.length) {
+        throw new Error("Please select at least one seat.");
       }
+
+      payload.seat = serializeSeatSelection(parseSeatSelection(selectedSeats.join(", ")));
 
       const response = await createBooking(payload);
       const bookingId = response.data?.id;
@@ -96,7 +130,17 @@ const BookShowPage = () => {
   if (loading) return <Loader text="Loading show..." />;
   if (!show) return <div className="text-center text-red-400">Show not found</div>;
 
-  const totalPrice = show.price * formData.noOfSeats;
+  const unavailableSeats = parseUnavailableSeats(show.seatConfiguration);
+  const rowCount = Math.ceil(show.noOfSeats / SEATS_PER_ROW);
+  const totalPrice = show.price * selectedSeats.length;
+
+  const toggleSeat = (seatLabel: string) => {
+    setSelectedSeats((currentSeats) =>
+      currentSeats.includes(seatLabel)
+        ? currentSeats.filter((seat) => seat !== seatLabel)
+        : [...currentSeats, seatLabel]
+    );
+  };
 
   return (
     <div className="mx-auto max-w-2xl animate-fade-in-up">
@@ -161,39 +205,112 @@ const BookShowPage = () => {
         )}
 
         {step === 0 && (
-          <div className="space-y-4">
-            <Input
-              label="Number of Seats"
-              type="number"
-              min="1"
-              max={show.noOfSeats}
-              value={formData.noOfSeats}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  noOfSeats: Math.min(show.noOfSeats, parseInt(e.target.value, 10) || 1)
-                })
-              }
-              required
-            />
+          <div className="space-y-5">
+            <div>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Choose your seats</h3>
+                  <p className="text-sm text-slate-400">
+                    {selectedSeats.length
+                      ? `${selectedSeats.length} selected: ${selectedSeats.join(", ")}`
+                      : "Tap any available seat in the seating plan."}
+                  </p>
+                </div>
+                <div className="rounded-full border border-brand/30 bg-brand/10 px-4 py-1.5 text-sm font-semibold text-brand">
+                  ₹{show.price} / seat
+                </div>
+              </div>
 
-            <div className="mb-4">
-              <label className="mb-2 block text-sm font-medium text-slate-300">
-                Preferred Seat Numbers (Optional)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., A1, A2, A3"
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-white placeholder-slate-500 outline-none transition-all focus:border-brand focus:shadow-[0_0_0_3px_rgba(225,29,72,0.1)]"
-                value={formData.seatNumbers}
-                onChange={(e) => setFormData({ ...formData, seatNumbers: e.target.value })}
-              />
-              <p className="mt-1.5 text-xs text-slate-500">
-                Use seat labels like A1, A2. If provided, the count must match the number of seats.
-              </p>
+              <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <div className="mx-auto min-w-[460px] max-w-2xl">
+                  <div className="mx-auto mb-9 w-4/5 rounded-b-2xl bg-brand py-3 text-center text-sm font-semibold text-white shadow-lg shadow-brand/20">
+                    Screen is this way
+                  </div>
+
+                  <div className="space-y-2">
+                    {Array.from({ length: rowCount }).map((_, rowIndex) => {
+                      const rowLabel = getRowLabel(rowIndex);
+
+                      return (
+                        <div key={rowLabel} className="flex items-center justify-center gap-3">
+                          <span className="w-6 text-right text-xs font-semibold text-slate-500">
+                            {rowLabel}
+                          </span>
+
+                          <div className="flex gap-9">
+                            {SEAT_GROUPS.map((group) => (
+                              <div key={group.join("-")} className="grid grid-cols-5 gap-2">
+                                {group.map((seatNumber) => {
+                                  const seatIndex = rowIndex * SEATS_PER_ROW + seatNumber;
+                                  const seatLabel = `${rowLabel}${seatNumber}`;
+                                  const isSelected = selectedSeats.includes(seatLabel);
+                                  const isUnavailable =
+                                    seatIndex > show.noOfSeats || unavailableSeats.has(seatLabel);
+
+                                  if (seatIndex > show.noOfSeats) {
+                                    return <span key={seatLabel} className="h-7 w-7" />;
+                                  }
+
+                                  return (
+                                    <button
+                                      key={seatLabel}
+                                      type="button"
+                                      aria-label={`${seatLabel} ${
+                                        isUnavailable
+                                          ? "reserved"
+                                          : isSelected
+                                            ? "selected"
+                                            : "available"
+                                      }`}
+                                      title={seatLabel}
+                                      disabled={isUnavailable}
+                                      onClick={() => toggleSeat(seatLabel)}
+                                      className={`h-7 w-7 rounded-b-lg border-[5px] border-t-0 text-[0px] transition-all focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-slate-950 ${
+                                        isUnavailable
+                                          ? "cursor-not-allowed border-slate-800 bg-slate-950"
+                                          : isSelected
+                                            ? "border-red-600 bg-red-900 shadow-[0_0_0_3px_rgba(220,38,38,0.18)]"
+                                            : "border-slate-500 bg-slate-900 hover:border-slate-300"
+                                      }`}
+                                    >
+                                      {seatLabel}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ))}
+                          </div>
+
+                          <span className="w-6" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-5 text-sm text-slate-300">
+                <span className="flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-b-lg border-[5px] border-t-0 border-slate-500 bg-slate-900" />
+                  Available seat
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-b-lg border-[5px] border-t-0 border-slate-800 bg-slate-950" />
+                  Reserved seat
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-b-lg border-[5px] border-t-0 border-red-600 bg-red-900" />
+                  Selected seat
+                </span>
+              </div>
             </div>
 
-            <Button className="w-full" size="lg" onClick={() => setStep(1)}>
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => setStep(1)}
+              disabled={!selectedSeats.length}
+            >
               Continue to Review
             </Button>
           </div>
@@ -210,16 +327,16 @@ const BookShowPage = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Number of seats</span>
-                <span className="font-medium text-white">{formData.noOfSeats}</span>
+                <span className="font-medium text-white">{selectedSeats.length}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Available seats</span>
                 <span className="font-medium text-white">{show.noOfSeats}</span>
               </div>
-              {formData.seatNumbers && (
+              {selectedSeats.length > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Seats</span>
-                  <span className="font-medium text-white">{formData.seatNumbers}</span>
+                  <span className="font-medium text-white">{selectedSeats.join(", ")}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-slate-700 pt-3">

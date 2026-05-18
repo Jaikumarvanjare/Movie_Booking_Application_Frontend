@@ -5,6 +5,7 @@ import type {
   CreatePaymentPayload,
   RazorpayOrderPayload,
   RazorpayOrderResponse,
+  RazorpayVerifyResponse,
   RazorpayVerifyPayload
 } from "../types/payment";
 
@@ -34,7 +35,7 @@ export const createRazorpayOrder = async (payload: RazorpayOrderPayload) => {
 };
 
 export const verifyRazorpayPayment = async (payload: RazorpayVerifyPayload) => {
-  const response = await apiClient.post<ApiResponse<{ success: boolean }>>(
+  const response = await apiClient.post<ApiResponse<RazorpayVerifyResponse>>(
     "/payments/razorpay/verify",
     payload
   );

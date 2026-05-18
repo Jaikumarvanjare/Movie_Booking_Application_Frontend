@@ -11,6 +11,7 @@ import Input from "../../components/common/Input";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import type { Movie } from "../../types/movie";
+import { hasNonEmptyListRejection, readSettledApiArray } from "../../utils/apiResults";
 import { appRoutes } from "../../utils/routes";
 
 const EditTheatrePage = () => {
@@ -34,7 +35,8 @@ const EditTheatrePage = () => {
     const loadData = async () => {
       if (!id) return;
       try {
-        const [theatreRes, moviesRes] = await Promise.all([getTheatreById(id), getMovies()]);
+        const theatreRes = await getTheatreById(id);
+        const [moviesRes] = await Promise.allSettled([getMovies()]);
         const theatre = theatreRes.data;
         setFormData({
           name: theatre.name,
@@ -44,7 +46,10 @@ const EditTheatrePage = () => {
           address: theatre.address || ""
         });
         setAssignedMovieIds(theatre.movieIds || []);
-        setMovies(Array.isArray(moviesRes.data) ? moviesRes.data : []);
+        setMovies(readSettledApiArray(moviesRes));
+        if (hasNonEmptyListRejection(moviesRes)) {
+          setError("Theatre loaded, but movies could not be loaded");
+        }
       } catch (err: any) {
         setError(err?.response?.data?.message || "Failed to load theatre");
       } finally {

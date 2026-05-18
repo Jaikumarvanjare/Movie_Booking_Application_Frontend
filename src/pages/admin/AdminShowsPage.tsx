@@ -11,6 +11,7 @@ import { useToast } from "../../context/ToastContext";
 import type { Movie } from "../../types/movie";
 import type { Show } from "../../types/show";
 import type { Theatre } from "../../types/theatre";
+import { hasNonEmptyListRejection, readSettledApiArray } from "../../utils/apiResults";
 import { appRoutes } from "../../utils/routes";
 
 const AdminShowsPage = () => {
@@ -25,14 +26,17 @@ const AdminShowsPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [showsRes, moviesRes, theatresRes] = await Promise.all([
+        const [showsRes, moviesRes, theatresRes] = await Promise.allSettled([
           getShows(),
           getMovies(),
           getTheatres()
         ]);
-        setShows(Array.isArray(showsRes.data) ? showsRes.data : []);
-        setMovies(Array.isArray(moviesRes.data) ? moviesRes.data : []);
-        setTheatres(Array.isArray(theatresRes.data) ? theatresRes.data : []);
+        setShows(readSettledApiArray(showsRes));
+        setMovies(readSettledApiArray(moviesRes));
+        setTheatres(readSettledApiArray(theatresRes));
+        if (hasNonEmptyListRejection(showsRes, moviesRes, theatresRes)) {
+          showToast("Some show data could not be loaded", "error");
+        }
       } catch {
         showToast("Failed to load shows", "error");
       } finally {

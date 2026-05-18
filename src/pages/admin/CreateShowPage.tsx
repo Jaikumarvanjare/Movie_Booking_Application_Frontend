@@ -9,6 +9,7 @@ import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import type { Movie } from "../../types/movie";
 import type { Theatre } from "../../types/theatre";
+import { hasNonEmptyListRejection, readSettledApiArray } from "../../utils/apiResults";
 
 const CreateShowPage = () => {
   const navigate = useNavigate();
@@ -36,9 +37,12 @@ const CreateShowPage = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [moviesRes, theatresRes] = await Promise.all([getMovies(), getTheatres()]);
-        setMovies(Array.isArray(moviesRes.data) ? moviesRes.data : []);
-        setTheatres(Array.isArray(theatresRes.data) ? theatresRes.data : []);
+        const [moviesRes, theatresRes] = await Promise.allSettled([getMovies(), getTheatres()]);
+        setMovies(readSettledApiArray(moviesRes));
+        setTheatres(readSettledApiArray(theatresRes));
+        if (hasNonEmptyListRejection(moviesRes, theatresRes)) {
+          showToast("Some form data could not be loaded", "error");
+        }
       } catch {
         showToast("Failed to load data", "error");
       } finally {

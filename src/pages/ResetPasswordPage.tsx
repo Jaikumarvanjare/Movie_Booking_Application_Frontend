@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { resetPassword } from "../api/authApi";
+import { changePassword } from "../api/authApi";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import { useToast } from "../context/ToastContext";
@@ -38,8 +38,8 @@ const ResetPasswordPage = () => {
     setLoading(true);
 
     try {
-      await resetPassword({
-        oldPassword: formData.oldPassword,
+      await changePassword({
+        currentPassword: formData.oldPassword,
         newPassword: formData.newPassword,
       });
       showToast("Password updated successfully!", "success");
