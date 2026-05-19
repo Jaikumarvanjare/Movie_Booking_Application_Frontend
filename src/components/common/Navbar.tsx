@@ -58,10 +58,16 @@ const Navbar = () => {
               )}
 
               <div className="flex items-center gap-3 border-l border-slate-700 pl-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/20 text-xs font-bold text-brand">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </div>
-                <span className="text-sm text-slate-400">{user?.name}</span>
+                <Link to={appRoutes.profile} className="flex items-center gap-3 rounded-full pr-2 transition hover:bg-slate-800/60">
+                  {user?.profilePhotoUrl ? (
+                    <img src={user.profilePhotoUrl} alt={user?.name} className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/20 text-xs font-bold text-brand">
+                      {user?.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-sm text-slate-400">{user?.name}</span>
+                </Link>
                 <button
                   onClick={logout}
                   className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-red-600/20 hover:text-red-400"
@@ -125,7 +131,20 @@ const Navbar = () => {
 
                 <div className="border-t border-slate-800 pt-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">{user?.name}</span>
+                    <Link
+                      to={appRoutes.profile}
+                      className="flex items-center gap-3 text-slate-400"
+                      onClick={closeMobile}
+                    >
+                      {user?.profilePhotoUrl ? (
+                        <img src={user.profilePhotoUrl} alt={user?.name} className="h-8 w-8 rounded-full object-cover" />
+                      ) : (
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/20 text-xs font-bold text-brand">
+                          {user?.name?.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span>{user?.name}</span>
+                    </Link>
                     <button
                       onClick={() => {
                         logout();

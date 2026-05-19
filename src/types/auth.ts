@@ -13,8 +13,13 @@ export interface SignInPayload {
 }
 
 export interface ResetPasswordPayload {
-  oldPassword: string;
+  email: string;
+  otp: string;
   newPassword: string;
+}
+
+export interface ForgotPasswordPayload {
+  email: string;
 }
 
 export interface ChangePasswordPayload {

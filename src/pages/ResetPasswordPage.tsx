@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { changePassword } from "../api/authApi";
+import { Link, useNavigate } from "react-router-dom";
+import { forgotPassword, resetPassword } from "../api/authApi";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import { useToast } from "../context/ToastContext";
@@ -10,15 +10,33 @@ const ResetPasswordPage = () => {
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
-    oldPassword: "",
+    email: "",
+    otp: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const requestOtp = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      await forgotPassword({ email: formData.email });
+      setOtpSent(true);
+      showToast("OTP sent to your email", "success");
+    } catch (err: any) {
+      setError(err?.response?.data?.err || err?.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -38,26 +56,27 @@ const ResetPasswordPage = () => {
     setLoading(true);
 
     try {
-      await changePassword({
-        currentPassword: formData.oldPassword,
+      await resetPassword({
+        email: formData.email,
+        otp: formData.otp,
         newPassword: formData.newPassword,
       });
-      showToast("Password updated successfully!", "success");
-      navigate("/");
+      showToast("Password reset successfully. Please sign in.", "success");
+      navigate("/signin");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to reset password");
+      setError(err?.response?.data?.err || err?.response?.data?.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
+    <div className="flex min-h-[70vh] items-center justify-center">
       <div className="w-full max-w-md animate-fade-in-up">
         <div className="glass rounded-2xl p-8 shadow-2xl">
           <div className="mb-8 text-center">
             <h2 className="mb-2 text-3xl font-extrabold text-white">Reset Password</h2>
-            <p className="text-slate-400">Change your account password</p>
+            <p className="text-slate-400">Verify your email with an OTP</p>
           </div>
 
           {error && (
@@ -66,51 +85,72 @@ const ResetPasswordPage = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <Input
-              label="Current Password"
-              type="password"
-              placeholder="Enter current password"
-              value={formData.oldPassword}
-              onChange={(e) => handleChange("oldPassword", e.target.value)}
-              required
-              icon={
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              }
-            />
-            <Input
-              label="New Password"
-              type="password"
-              placeholder="Enter new password"
-              value={formData.newPassword}
-              onChange={(e) => handleChange("newPassword", e.target.value)}
-              required
-              icon={
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-              }
-            />
-            <Input
-              label="Confirm New Password"
-              type="password"
-              placeholder="Confirm new password"
-              value={formData.confirmPassword}
-              onChange={(e) => handleChange("confirmPassword", e.target.value)}
-              required
-              icon={
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-            />
+          {!otpSent ? (
+            <form onSubmit={requestOtp}>
+              <Input
+                label="Email"
+                type="email"
+                placeholder="Enter your account email"
+                value={formData.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                required
+              />
 
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Updating..." : "Update Password"}
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? "Sending OTP..." : "Send OTP"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <Input
+                label="Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                required
+              />
+              <Input
+                label="OTP"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="Enter 6-digit OTP"
+                value={formData.otp}
+                onChange={(e) => handleChange("otp", e.target.value)}
+                required
+              />
+              <Input
+                label="New Password"
+                type="password"
+                placeholder="Enter new password"
+                value={formData.newPassword}
+                onChange={(e) => handleChange("newPassword", e.target.value)}
+                required
+              />
+              <Input
+                label="Confirm New Password"
+                type="password"
+                placeholder="Confirm new password"
+                value={formData.confirmPassword}
+                onChange={(e) => handleChange("confirmPassword", e.target.value)}
+                required
+              />
+
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? "Updating..." : "Update Password"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setOtpSent(false)}
+                className="mt-4 w-full text-sm text-slate-400 transition hover:text-brand"
+              >
+                Use a different email
+              </button>
+            </form>
+          )}
+
+          <Link to="/signin" className="mt-6 block text-center text-sm text-slate-500 transition hover:text-white">
+            Back to sign in
+          </Link>
         </div>
       </div>
     </div>

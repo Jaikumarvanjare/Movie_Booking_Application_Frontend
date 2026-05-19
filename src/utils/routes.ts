@@ -7,6 +7,7 @@ export const appRoutes = {
   shows: "/shows",
   bookings: "/bookings",
   payments: "/payments",
+  profile: "/profile",
   resetPassword: "/reset-password",
   adminMovies: "/admin/movies",
   adminCreateMovie: "/admin/movies/create",

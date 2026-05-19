@@ -11,6 +11,8 @@ interface BackendProfileUser {
   id: string;
   name: string;
   email: string;
+  about?: string;
+  profilePhotoUrl?: string;
   role: UserRole;
   status?: UserStatus;
   createdAt?: string;
@@ -21,13 +23,17 @@ interface ProfileResponse {
 }
 
 export interface UpdateProfilePayload {
-  name: string;
+  name?: string;
+  about?: string;
+  profilePhotoUrl?: string;
 }
 
 const normalizeProfileUser = (user: BackendProfileUser): User => ({
   id: user.id,
   name: user.name,
   email: user.email,
+  about: user.about,
+  profilePhotoUrl: user.profilePhotoUrl,
   userRole: user.role,
   userStatus: user.status,
   createdAt: user.createdAt

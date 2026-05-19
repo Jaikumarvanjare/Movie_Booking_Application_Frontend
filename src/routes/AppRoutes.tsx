@@ -20,6 +20,7 @@ import MovieDetailsPage from "../pages/MovieDetailsPage";
 import MoviesPage from "../pages/MoviesPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import PaymentsPage from "../pages/PaymentsPage";
+import ProfilePage from "../pages/ProfilePage";
 import ResetPasswordPage from "../pages/ResetPasswordPage";
 import ShowsPage from "../pages/ShowsPage";
 import SignInPage from "../pages/SignInPage";
@@ -37,6 +38,7 @@ const AppRoutes = () => {
         <Route path="movies/:id" element={<MovieDetailsPage />} />
         <Route path="theatres" element={<TheatresPage />} />
         <Route path="shows" element={<ShowsPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
 
         <Route
           path="shows/:showId/book"
@@ -71,10 +73,10 @@ const AppRoutes = () => {
           }
         />
         <Route
-          path="reset-password"
+          path="profile"
           element={
             <ProtectedRoute>
-              <ResetPasswordPage />
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

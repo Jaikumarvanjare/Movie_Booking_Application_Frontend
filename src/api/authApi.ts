@@ -3,6 +3,7 @@ import type { ApiResponse } from "../types/api";
 import type {
   AuthData,
   ChangePasswordPayload,
+  ForgotPasswordPayload,
   ResetPasswordPayload,
   SignInPayload,
   SignUpPayload
@@ -25,8 +26,16 @@ export const signIn = async (payload: SignInPayload) => {
 };
 
 export const resetPassword = async (payload: ResetPasswordPayload) => {
-  const response = await apiClient.patch<ApiResponse<null>>(
-    "/auth/reset",
+  const response = await apiClient.post<ApiResponse<Record<string, never>>>(
+    "/auth/reset-password",
+    payload
+  );
+  return response.data;
+};
+
+export const forgotPassword = async (payload: ForgotPasswordPayload) => {
+  const response = await apiClient.post<ApiResponse<Record<string, never>>>(
+    "/auth/forgot-password",
     payload
   );
   return response.data;
