@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getMovies } from "../api/movieApi";
 import { getShows } from "../api/showApi";
 import { getTheatres } from "../api/theatreApi";
@@ -17,8 +18,9 @@ const ShowsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMovieId, setSelectedMovieId] = useState("");
-  const [selectedTheatreId, setSelectedTheatreId] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedMovieId = searchParams.get("movieId") || "";
+  const selectedTheatreId = searchParams.get("theatreId") || "";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +48,16 @@ const ShowsPage = () => {
 
   const movieMap = useMemo(() => new Map(movies.map((movie) => [movie.id, movie])), [movies]);
   const theatreMap = useMemo(() => new Map(theatres.map((theatre) => [theatre.id, theatre])), [theatres]);
+
+  const updateFilterParam = (key: "movieId" | "theatreId", value: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) {
+      nextParams.set(key, value);
+    } else {
+      nextParams.delete(key);
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const filteredShows = shows.filter((show) => {
     const movie = movieMap.get(show.movieId);
@@ -86,7 +98,7 @@ const ShowsPage = () => {
         <SearchBar placeholder="Search by movie, theatre, or city..." onSearch={setSearchTerm} />
         <select
           value={selectedMovieId}
-          onChange={(e) => setSelectedMovieId(e.target.value)}
+          onChange={(e) => updateFilterParam("movieId", e.target.value)}
           className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm text-white outline-none transition-all focus:border-brand"
         >
           <option value="">All Movies</option>
@@ -96,7 +108,7 @@ const ShowsPage = () => {
         </select>
         <select
           value={selectedTheatreId}
-          onChange={(e) => setSelectedTheatreId(e.target.value)}
+          onChange={(e) => updateFilterParam("theatreId", e.target.value)}
           className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm text-white outline-none transition-all focus:border-brand"
         >
           <option value="">All Theatres</option>

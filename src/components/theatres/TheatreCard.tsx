@@ -1,11 +1,21 @@
+import { Link } from "react-router-dom";
+
+import { appRoutes } from "../../utils/routes";
 import type { Theatre } from "../../types/theatre";
+
+interface TheatreMovie {
+  id: string;
+  name: string;
+}
 
 interface TheatreCardProps {
   theatre: Theatre;
-  movieNames?: string[];
+  movies?: TheatreMovie[];
 }
 
-const TheatreCard = ({ theatre, movieNames = [] }: TheatreCardProps) => {
+const TheatreCard = ({ theatre, movies = [] }: TheatreCardProps) => {
+  const movieCount = movies.length || theatre.movieIds?.length || 0;
+
   return (
     <div className="group rounded-2xl border border-slate-800/50 bg-slate-900/50 p-5 transition-all duration-300 hover:border-brand/20 hover:shadow-lg hover:shadow-brand/5">
       <div className="mb-3 flex items-start justify-between">
@@ -19,9 +29,9 @@ const TheatreCard = ({ theatre, movieNames = [] }: TheatreCardProps) => {
             {theatre.name}
           </h3>
         </div>
-        {(theatre.movieIds?.length || movieNames.length) > 0 && (
+        {movieCount > 0 && (
           <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-medium text-brand">
-            {movieNames.length || theatre.movieIds?.length || 0} movie{(movieNames.length || theatre.movieIds?.length || 0) > 1 ? "s" : ""}
+            {movieCount} movie{movieCount > 1 ? "s" : ""}
           </span>
         )}
       </div>
@@ -45,24 +55,36 @@ const TheatreCard = ({ theatre, movieNames = [] }: TheatreCardProps) => {
           </>
         )}
       </div>
-      {movieNames.length > 0 && (
+      {movies.length > 0 && (
         <div className="mt-4 border-t border-slate-800/70 pt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Running Movies
           </p>
           <div className="flex flex-wrap gap-2">
-            {movieNames.slice(0, 4).map((movieName) => (
-              <span key={movieName} className="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-300">
-                {movieName}
-              </span>
+            {movies.slice(0, 4).map((movie) => (
+              <Link
+                key={movie.id}
+                to={appRoutes.theatreShows(theatre.id, movie.id)}
+                className="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-300 transition hover:bg-brand hover:text-white"
+              >
+                {movie.name}
+              </Link>
             ))}
-            {movieNames.length > 4 && (
+            {movies.length > 4 && (
               <span className="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-400">
-                +{movieNames.length - 4} more
+                +{movies.length - 4} more
               </span>
             )}
           </div>
         </div>
+      )}
+      {movieCount > 0 && (
+        <Link
+          to={appRoutes.theatreShows(theatre.id)}
+          className="mt-4 block rounded-xl border border-brand/30 bg-brand/10 py-2.5 text-center text-sm font-semibold text-brand-400 transition hover:border-brand hover:bg-brand hover:text-white"
+        >
+          View available shows
+        </Link>
       )}
     </div>
   );

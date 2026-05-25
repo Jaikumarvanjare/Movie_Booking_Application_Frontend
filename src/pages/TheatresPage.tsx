@@ -40,11 +40,13 @@ const TheatresPage = () => {
     setSearchTerm(value);
   }, []);
 
-  const movieMap = useMemo(() => new Map(movies.map((movie) => [movie.id, movie.name])), [movies]);
+  const movieMap = useMemo(() => new Map(movies.map((movie) => [movie.id, movie])), [movies]);
 
   const filteredTheatres = theatres.filter((theatre) => {
     const query = searchTerm.trim().toLowerCase();
-    const movieNames = (theatre.movieIds || []).map((movieId) => movieMap.get(movieId)?.toLowerCase()).filter(Boolean);
+    const movieNames = (theatre.movieIds || [])
+      .map((movieId) => movieMap.get(movieId)?.name.toLowerCase())
+      .filter(Boolean);
 
     return (
       !query ||
@@ -103,7 +105,10 @@ const TheatresPage = () => {
             <TheatreCard
               key={theatre.id}
               theatre={theatre}
-              movieNames={(theatre.movieIds || []).map((movieId) => movieMap.get(movieId)).filter(Boolean) as string[]}
+              movies={(theatre.movieIds || [])
+                .map((movieId) => movieMap.get(movieId))
+                .filter(Boolean)
+                .map((movie) => ({ id: movie!.id, name: movie!.name }))}
             />
           ))}
         </div>

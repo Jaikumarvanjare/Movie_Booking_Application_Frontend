@@ -20,6 +20,11 @@ export const appRoutes = {
   adminEditShow: (showId: string) => `/admin/shows/${showId}/edit`,
   adminUsers: "/admin/users",
   movieDetails: (movieId: string) => `/movies/${movieId}`,
+  theatreShows: (theatreId: string, movieId?: string) => {
+    const params = new URLSearchParams({ theatreId });
+    if (movieId) params.set("movieId", movieId);
+    return `/shows?${params.toString()}`;
+  },
   showBooking: (showId: string) => `/shows/${showId}/book`,
   bookingPayment: (bookingId: string) => `/bookings/${bookingId}/payment`
 };
