@@ -118,8 +118,8 @@ const MovieDetailsPage = () => {
                   <Button variant="outline">Watch Trailer</Button>
                 </a>
               )}
-              <Link to={appRoutes.shows}>
-                <Button>{shows.length > 0 ? "Browse Showtimes" : "View All Shows"}</Button>
+              <Link to={appRoutes.theatres}>
+                <Button>{shows.length > 0 ? "Find theatres" : "Explore theatres"}</Button>
               </Link>
             </div>
           </div>

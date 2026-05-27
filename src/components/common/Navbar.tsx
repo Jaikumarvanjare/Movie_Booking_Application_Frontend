@@ -31,7 +31,6 @@ const Navbar = () => {
         <div className="hidden items-center gap-6 text-sm md:flex">
           <Link to={appRoutes.movies} className={navLinkClass(appRoutes.movies)}>Movies</Link>
           <Link to={appRoutes.theatres} className={navLinkClass(appRoutes.theatres)}>Theatres</Link>
-          <Link to={appRoutes.shows} className={navLinkClass(appRoutes.shows)}>Shows</Link>
 
           {isAuthenticated ? (
             <>
@@ -110,7 +109,6 @@ const Navbar = () => {
           <div className="flex flex-col gap-3 text-sm">
             <Link to={appRoutes.movies} className={navLinkClass(appRoutes.movies)} onClick={closeMobile}>Movies</Link>
             <Link to={appRoutes.theatres} className={navLinkClass(appRoutes.theatres)} onClick={closeMobile}>Theatres</Link>
-            <Link to={appRoutes.shows} className={navLinkClass(appRoutes.shows)} onClick={closeMobile}>Shows</Link>
 
             {isAuthenticated ? (
               <>

@@ -10,6 +10,7 @@ import { useToast } from "../../context/ToastContext";
 import type { Movie } from "../../types/movie";
 import type { Theatre } from "../../types/theatre";
 import { hasNonEmptyListRejection, readSettledApiArray } from "../../utils/apiResults";
+import { appRoutes } from "../../utils/routes";
 
 const CreateShowPage = () => {
   const navigate = useNavigate();
@@ -109,7 +110,7 @@ const CreateShowPage = () => {
       });
 
       showToast("Show created successfully!", "success");
-      navigate("/shows");
+      navigate(appRoutes.adminShows);
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Failed to create show");
       showToast("Failed to create show", "error");

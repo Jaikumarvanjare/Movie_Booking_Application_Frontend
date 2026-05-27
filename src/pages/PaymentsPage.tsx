@@ -3,6 +3,7 @@ import { getPayments } from "../api/paymentApi";
 import Badge from "../components/common/Badge";
 import Loader from "../components/common/Loader";
 import type { Payment } from "../types/payment";
+import { formatSeatSelection } from "../utils/booking";
 
 const PaymentsPage = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -78,6 +79,11 @@ const PaymentsPage = () => {
                   <div>
                     <p className="font-semibold text-white">₹{payment.amount}</p>
                     <p className="text-xs text-slate-500">Booking: {payment.bookingId.slice(-8)}</p>
+                    {payment.booking?.seat && (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Seats: {formatSeatSelection(payment.booking.seat)}
+                      </p>
+                    )}
                   </div>
                 </div>
 

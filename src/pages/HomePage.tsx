@@ -1,34 +1,88 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMovies } from "../api/movieApi";
-import { getShows } from "../api/showApi";
-import { getTheatres } from "../api/theatreApi";
-import Button from "../components/common/Button";
 import Loader from "../components/common/Loader";
 import MovieCard from "../components/movies/MovieCard";
+import { useAuth } from "../hooks/useAuth";
 import type { Movie } from "../types/movie";
-import type { Show } from "../types/show";
-import type { Theatre } from "../types/theatre";
 import { readSettledApiArray } from "../utils/apiResults";
 import { appRoutes } from "../utils/routes";
 
+type StatusFilter = "ALL" | "RELEASED" | "UPCOMING";
+
+const normalizeReleaseStatus = (status: string) => {
+  const normalized = status.trim().toUpperCase().replace(/\s+/g, "_");
+  return normalized === "NOW_SHOWING" || normalized === "NOWSHOWING" || normalized === "ACTIVE"
+    ? "RELEASED"
+    : normalized;
+};
+
+const dayOfYear = (date: Date) => {
+  const start = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date.getTime() - start.getTime()) / 86400000);
+};
+
+const stableDailyRank = (movie: Movie, seed: number) => {
+  const value = `${movie.id}${movie.name}${seed}`;
+  return value
+    .split("")
+    .reduce((sum, character) => ((sum * 31 + character.charCodeAt(0)) & 0x7fffffff), 0);
+};
+
+const popularityScore = (movie: Movie) => {
+  let score = 0;
+  if (normalizeReleaseStatus(movie.releaseStatus) === "RELEASED") score += 40;
+  if (movie.poster?.trim()) score += 25;
+  if (movie.trailerUrl?.trim()) score += 20;
+
+  const releaseDate = new Date(movie.releaseDate);
+  if (!Number.isNaN(releaseDate.getTime())) {
+    const ageInDays = Math.floor((Date.now() - releaseDate.getTime()) / 86400000);
+    if (ageInDays >= 0 && ageInDays <= 90) score += 15;
+  }
+
+  return score;
+};
+
+const getPopularMovies = (movies: Movie[], nowShowing: Movie[]) => {
+  const source = nowShowing.length >= 5 ? nowShowing : movies;
+  const seed = new Date().getFullYear() * 1000 + dayOfYear(new Date());
+
+  return [...source]
+    .sort((a, b) => {
+      const scoreDiff = popularityScore(b) - popularityScore(a);
+      if (scoreDiff !== 0) return scoreDiff;
+      return stableDailyRank(a, seed) - stableDailyRank(b, seed);
+    })
+    .slice(0, 5);
+};
+
+const firstNameFor = (name?: string) => {
+  return name?.trim().split(/\s+/)[0] || "";
+};
+
+const releaseLabel = (status: string) => {
+  return normalizeReleaseStatus(status)
+    .toLowerCase()
+    .split("_")
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+};
+
 const HomePage = () => {
+  const { user } = useAuth();
+  const carouselRef = useRef<HTMLDivElement>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [shows, setShows] = useState<Show[]>([]);
-  const [theatres, setTheatres] = useState<Theatre[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const firstName = firstNameFor(user?.name);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [moviesRes, showsRes, theatresRes] = await Promise.allSettled([
-          getMovies(),
-          getShows(),
-          getTheatres()
-        ]);
-        setMovies(readSettledApiArray(moviesRes));
-        setShows(readSettledApiArray(showsRes));
-        setTheatres(readSettledApiArray(theatresRes));
+        const moviesRes = await Promise.allSettled([getMovies()]);
+        setMovies(readSettledApiArray(moviesRes[0]));
       } catch {
         console.error("Failed to fetch homepage data");
       } finally {
@@ -38,65 +92,173 @@ const HomePage = () => {
     fetchData();
   }, []);
 
-  const nowShowing = movies.filter((movie) => movie.releaseStatus === "RELEASED");
-  const upcoming = movies.filter((movie) => movie.releaseStatus === "UPCOMING");
-  const liveShows = shows.filter((show) => new Date(show.timing) >= new Date());
+  const filteredMovies = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    return movies.filter((movie) => {
+      const matchesSearch = !query || movie.name.toLowerCase().includes(query);
+      const matchesStatus =
+        statusFilter === "ALL" || normalizeReleaseStatus(movie.releaseStatus) === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [movies, searchTerm, statusFilter]);
+
+  const nowShowing = useMemo(
+    () => filteredMovies.filter((movie) => normalizeReleaseStatus(movie.releaseStatus) === "RELEASED"),
+    [filteredMovies]
+  );
+  const upcoming = useMemo(
+    () => filteredMovies.filter((movie) => normalizeReleaseStatus(movie.releaseStatus) === "UPCOMING"),
+    [filteredMovies]
+  );
+  const popularMovies = useMemo(
+    () => getPopularMovies(filteredMovies, nowShowing),
+    [filteredMovies, nowShowing]
+  );
+
+  const scrollCarousel = (direction: "left" | "right") => {
+    carouselRef.current?.scrollBy({
+      left: direction === "left" ? -320 : 320,
+      behavior: "smooth"
+    });
+  };
+
+  if (loading) return <Loader text="Loading movies..." />;
 
   return (
-    <div className="space-y-16">
-      <section className="relative flex min-h-[60vh] flex-col items-center justify-center overflow-hidden rounded-[2rem] border border-slate-800/50 bg-[radial-gradient(circle_at_top,_rgba(225,29,72,0.18),_transparent_35%),linear-gradient(135deg,_rgba(15,23,42,0.9),_rgba(2,6,23,1))] px-6 text-center">
-        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-brand/10 blur-3xl animate-float" />
-        <div className="absolute -bottom-20 -right-40 h-60 w-60 rounded-full bg-brand-500/10 blur-3xl animate-float" style={{ animationDelay: "3s" }} />
-
-        <div className="relative z-10 animate-fade-in-up">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-brand-300">Movie Booking Platform</p>
-          <h1 className="mb-4 text-5xl font-extrabold leading-tight md:text-7xl">
-            Book Movies with <span className="text-gradient">CineBook</span>
-          </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-slate-300">
-            Browse the latest movies, explore theatres near you, compare showtimes, and confirm seats in a single flow built on your current backend routes.
+    <div className="mx-auto max-w-7xl space-y-8 pb-10">
+      <section>
+        <div>
+          <p className="text-sm font-bold text-brand">
+            {firstName ? `Welcome back, ${firstName}` : "Welcome back"}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link to={appRoutes.movies}>
-              <Button size="lg">Explore Movies</Button>
-            </Link>
-            <Link to={appRoutes.shows}>
-              <Button variant="outline" size="lg">View Shows</Button>
-            </Link>
-          </div>
+          <h1 className="mt-2 text-4xl font-extrabold leading-tight text-white">
+            Find your next show
+          </h1>
         </div>
       </section>
 
-      {loading ? (
-        <Loader text="Loading homepage..." />
+      <section className="space-y-4">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            Search
+          </span>
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="h-14 w-full rounded-2xl border border-brand/30 bg-slate-900/80 pl-24 pr-4 text-white outline-none transition focus:border-brand focus:shadow-[0_0_0_3px_rgba(225,29,72,0.16)]"
+            placeholder="Search movies by name"
+            type="search"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {[
+            ["ALL", "All"],
+            ["RELEASED", "Now showing"],
+            ["UPCOMING", "Coming soon"]
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setStatusFilter(value as StatusFilter)}
+              className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                statusFilter === value
+                  ? "border-brand bg-brand text-white"
+                  : "border-slate-800 bg-slate-900/70 text-slate-300 hover:border-brand/50 hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {popularMovies.length > 0 && (
+        <section className="relative">
+          <div
+            ref={carouselRef}
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {popularMovies.map((movie) => (
+              <Link
+                key={movie.id}
+                to={appRoutes.movieDetails(movie.id)}
+                className="group relative h-[390px] min-w-[280px] snap-start overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 sm:min-w-[320px]"
+              >
+                {movie.poster ? (
+                  <img
+                    src={movie.poster}
+                    alt={movie.name}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-slate-800 text-sm font-semibold text-slate-400">
+                    Poster unavailable
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-slate-950/20" />
+                <div className="absolute inset-x-0 bottom-0 p-5">
+                  <span className="mb-3 inline-flex rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold text-white">
+                    {releaseLabel(movie.releaseStatus)}
+                  </span>
+                  <h2 className="line-clamp-2 text-2xl font-extrabold text-white">{movie.name}</h2>
+                  <p className="mt-2 text-sm font-semibold text-slate-300">{movie.language}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {popularMovies.length > 1 && (
+            <div className="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 sm:px-4">
+              <button
+                type="button"
+                onClick={() => scrollCarousel("left")}
+                className="pointer-events-auto relative flex h-14 w-10 items-center justify-center rounded-full border border-white/10 bg-slate-950/35 text-3xl font-light text-white opacity-90 backdrop-blur-md transition hover:bg-slate-950/65"
+                aria-label="Previous movie"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollCarousel("right")}
+                className="pointer-events-auto relative flex h-14 w-10 items-center justify-center rounded-full border border-white/10 bg-slate-950/35 text-3xl font-light text-white opacity-90 backdrop-blur-md transition hover:bg-slate-950/65"
+                aria-label="Next movie"
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {filteredMovies.length === 0 ? (
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-12 text-center">
+          <h2 className="text-2xl font-bold text-white">No movies found</h2>
+          <p className="mt-2 text-slate-400">Try a different movie name or release filter.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm("");
+              setStatusFilter("ALL");
+            }}
+            className="mt-5 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white transition hover:bg-brand-dark"
+          >
+            Clear filters
+          </button>
+        </section>
       ) : (
         <>
-          <section className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-800/50 bg-slate-900/40 p-6">
-              <p className="text-sm uppercase tracking-wider text-slate-500">Now Showing</p>
-              <p className="mt-2 text-3xl font-bold text-white">{nowShowing.length}</p>
-              <p className="mt-1 text-sm text-slate-400">Active movie releases customers can book today.</p>
-            </div>
-            <div className="rounded-2xl border border-slate-800/50 bg-slate-900/40 p-6">
-              <p className="text-sm uppercase tracking-wider text-slate-500">Upcoming Shows</p>
-              <p className="mt-2 text-3xl font-bold text-white">{liveShows.length}</p>
-              <p className="mt-1 text-sm text-slate-400">Scheduled showtimes currently visible in the app.</p>
-            </div>
-            <div className="rounded-2xl border border-slate-800/50 bg-slate-900/40 p-6">
-              <p className="text-sm uppercase tracking-wider text-slate-500">Theatres</p>
-              <p className="mt-2 text-3xl font-bold text-white">{theatres.length}</p>
-              <p className="mt-1 text-sm text-slate-400">Cities and theatres available for bookings.</p>
-            </div>
-          </section>
-
           {nowShowing.length > 0 && (
-            <section className="animate-fade-in">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-3xl font-bold text-white">Now Showing</h2>
-                <Link to={appRoutes.movies} className="text-sm text-brand transition hover:text-brand-400">View All â†’</Link>
+            <section>
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">Now showing</h2>
+                <Link to={appRoutes.movies} className="text-sm font-semibold text-brand transition hover:text-brand-400">
+                  View all
+                </Link>
               </div>
-              <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-                {nowShowing.slice(0, 8).map((movie) => (
+              <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 xl:grid-cols-5">
+                {nowShowing.slice(0, 5).map((movie) => (
                   <MovieCard key={movie.id} movie={movie} />
                 ))}
               </div>
@@ -104,38 +266,43 @@ const HomePage = () => {
           )}
 
           {upcoming.length > 0 && (
-            <section className="animate-fade-in">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-3xl font-bold text-white">Coming Soon</h2>
-                <Link to={appRoutes.movies} className="text-sm text-brand transition hover:text-brand-400">View All â†’</Link>
+            <section>
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">Coming soon</h2>
+                <Link to={appRoutes.movies} className="text-sm font-semibold text-brand transition hover:text-brand-400">
+                  View all
+                </Link>
               </div>
-              <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
-                {upcoming.slice(0, 4).map((movie) => (
-                  <MovieCard key={movie.id} movie={movie} />
+              <div className="grid gap-3">
+                {upcoming.slice(0, 5).map((movie) => (
+                  <Link
+                    key={movie.id}
+                    to={appRoutes.movieDetails(movie.id)}
+                    className="flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 transition hover:border-brand/40"
+                  >
+                    <div className="h-16 w-16 overflow-hidden rounded-xl bg-slate-800">
+                      {movie.poster ? (
+                        <img src={movie.poster} alt={movie.name} className="h-full w-full object-cover" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-bold text-white">{movie.name}</h3>
+                      <p className="text-sm text-slate-400">
+                        {new Date(movie.releaseDate).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })}
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold text-brand">{releaseLabel(movie.releaseStatus)}</span>
+                  </Link>
                 ))}
               </div>
             </section>
           )}
-
-          {movies.length === 0 && (
-            <section className="flex flex-col items-center justify-center py-20 text-center">
-              <p className="mb-2 text-5xl">ðŸŽ¥</p>
-              <h3 className="mb-2 text-xl font-semibold text-white">No movies yet</h3>
-              <p className="text-slate-400">Check back soon for exciting releases.</p>
-            </section>
-          )}
         </>
       )}
-
-      <section className="rounded-2xl border border-slate-800/50 bg-slate-900/30 p-8 text-center">
-        <h3 className="mb-2 text-2xl font-bold text-white">Ready to book?</h3>
-        <p className="mb-6 text-slate-400">
-          Sign up now and get instant access to book your favourite movies.
-        </p>
-        <Link to={appRoutes.signUp}>
-          <Button size="lg">Get Started</Button>
-        </Link>
-      </section>
     </div>
   );
 };

@@ -5,6 +5,7 @@ export interface Payment {
   amount: number;
   status: string;
   bookingId: string;
+  booking?: Booking;
   razorpayPaymentId?: string;
   razorpayOrderId?: string;
   createdAt?: string;

@@ -81,7 +81,7 @@ const TheatreCard = ({ theatre, movies = [] }: TheatreCardProps) => {
       {movieCount > 0 && (
         <Link
           to={appRoutes.theatreShows(theatre.id)}
-          className="mt-4 block rounded-xl border border-brand/30 bg-brand/10 py-2.5 text-center text-sm font-semibold text-brand-400 transition hover:border-brand hover:bg-brand hover:text-white"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition-all duration-200 hover:from-brand-dark hover:to-brand hover:shadow-brand/40 active:scale-[0.97]"
         >
           View available shows
         </Link>

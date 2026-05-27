@@ -7,6 +7,7 @@ import Loader from "../components/common/Loader";
 import Modal from "../components/common/Modal";
 import { useToast } from "../context/ToastContext";
 import type { Booking } from "../types/booking";
+import { formatSeatSelection } from "../utils/booking";
 import { appRoutes } from "../utils/routes";
 
 const isBookingAwaitingPayment = (status: string) => {
@@ -113,7 +114,7 @@ const BookingsPage = () => {
                   <div className="flex items-center gap-4 text-sm text-slate-400">
                     <span>🎫 {booking.noOfSeats} seat{booking.noOfSeats > 1 ? "s" : ""}</span>
                     <span>💰 ₹{booking.totalCost}</span>
-                    {booking.seat && <span>💺 {booking.seat}</span>}
+                    {booking.seat && <span>💺 {formatSeatSelection(booking.seat)}</span>}
                   </div>
                 </div>
 

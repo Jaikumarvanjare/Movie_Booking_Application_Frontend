@@ -7,6 +7,7 @@ import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { useRazorpay } from "../../hooks/useRazorpay";
 import type { Booking } from "../../types/booking";
+import { formatSeatSelection } from "../../utils/booking";
 import { appRoutes } from "../../utils/routes";
 
 // ── Small inline Razorpay logo SVG ───────────────────────────────────────────
@@ -215,6 +216,12 @@ const MakePaymentPage = () => {
                   <p className="text-sm text-white">{booking.status}</p>
                 </div>
               </div>
+              {booking.seat && (
+                <div className="mt-4">
+                  <p className="text-xs uppercase tracking-wider text-slate-500">Seat Numbers</p>
+                  <p className="text-sm font-semibold text-white">{formatSeatSelection(booking.seat)}</p>
+                </div>
+              )}
             </div>
 
             {/* Total amount */}

@@ -6,7 +6,6 @@ import Button from "../../components/common/Button";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import type { Show } from "../../types/show";
-import { parseSeatSelection, serializeSeatSelection } from "../../utils/booking";
 import { appRoutes } from "../../utils/routes";
 
 const STEPS = ["Select Seats", "Review", "Payment"];
@@ -39,7 +38,17 @@ const parseUnavailableSeats = (seatConfiguration?: string) => {
       : parsed.reservedSeats || parsed.bookedSeats || parsed.unavailableSeats || [];
 
     if (Array.isArray(values)) {
-      return new Set(values.map(String).map((seat) => seat.toUpperCase()));
+      return new Set(
+        values
+          .map((seat) => {
+            if (typeof seat === "string") return seat;
+            const rowNumber = Number(seat?.rowNumber);
+            const seatNumber = Number(seat?.seatNumber);
+            return rowNumber && seatNumber ? `${getRowLabel(rowNumber - 1)}${seatNumber}` : "";
+          })
+          .map((seat) => seat.toUpperCase())
+          .filter(Boolean)
+      );
     }
   } catch {
     return new Set(
@@ -106,7 +115,7 @@ const BookShowPage = () => {
         throw new Error("Please select at least one seat.");
       }
 
-      payload.seat = serializeSeatSelection(parseSeatSelection(selectedSeats.join(", ")));
+      payload.seat = selectedSeats.join(", ");
 
       const response = await createBooking(payload);
       const bookingId = response.data?.id;
